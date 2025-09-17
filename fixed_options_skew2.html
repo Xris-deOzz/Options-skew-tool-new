@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Options Skew Visualization</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Options Skew Explained</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -56,10 +55,13 @@
             line-height: 1.6;
             text-align: center;
         }
-        .chart-container {
-            position: relative;
-            height: 400px;
-            margin: 20px 0;
+        canvas {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: block;
+            margin: 20px auto;
         }
         .controls {
             text-align: center;
@@ -117,20 +119,6 @@
             color: #2c3e50;
             margin-top: 0;
         }
-        .loading {
-            text-align: center;
-            color: #666;
-            font-style: italic;
-            margin: 20px 0;
-        }
-        .error {
-            background: #ffe6e6;
-            color: #d63031;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-            border: 1px solid #fab1a0;
-        }
     </style>
 </head>
 <body>
@@ -162,10 +150,7 @@
                 </div>
             </div>
 
-            <div class="chart-container">
-                <div class="loading" id="loading1">Loading chart...</div>
-                <canvas id="skewChart" style="display: none;"></canvas>
-            </div>
+            <canvas id="mainChart" width="800" height="400"></canvas>
         </div>
 
         <div class="explanation">
@@ -201,10 +186,7 @@
             <p class="chart-description">
                 Compare different types of skew patterns commonly observed in the market
             </p>
-            <div class="chart-container">
-                <div class="loading" id="loading2">Loading chart...</div>
-                <canvas id="patternsChart" style="display: none;"></canvas>
-            </div>
+            <canvas id="comparisonChart" width="800" height="400"></canvas>
         </div>
 
         <div class="explanation">
@@ -219,215 +201,268 @@
     </div>
 
     <script>
-        let skewChart, patternsChart;
-
-        // Wait for page to fully load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if Chart.js loaded
-            if (typeof Chart === 'undefined') {
-                document.getElementById('loading1').innerHTML = '<div class="error">Error: Chart.js library failed to load. Please refresh the page.</div>';
-                document.getElementById('loading2').innerHTML = '<div class="error">Error: Chart.js library failed to load. Please refresh the page.</div>';
-                return;
-            }
-
-            try {
-                initializeCharts();
-            } catch (error) {
-                console.error('Error initializing charts:', error);
-                document.getElementById('loading1').innerHTML = '<div class="error">Error loading charts. Check console for details.</div>';
-                document.getElementById('loading2').innerHTML = '<div class="error">Error loading charts. Check console for details.</div>';
-            }
-        });
-
-        // Initialize charts
-        function initializeCharts() {
-            const ctx1 = document.getElementById('skewChart').getContext('2d');
-            const ctx2 = document.getElementById('patternsChart').getContext('2d');
-
-            // Hide loading messages
-            document.getElementById('loading1').style.display = 'none';
-            document.getElementById('loading2').style.display = 'none';
-            document.getElementById('skewChart').style.display = 'block';
-            document.getElementById('patternsChart').style.display = 'block';
-
-            // Main interactive skew chart
-            skewChart = new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Implied Volatility',
-                        data: [],
-                        borderColor: '#3498db',
-                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#3498db',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Implied Volatility vs Strike Price',
-                            font: { size: 16, weight: 'bold' }
-                        },
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Strike Price ($)',
-                                font: { size: 14, weight: 'bold' }
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Implied Volatility (%)',
-                                font: { size: 14, weight: 'bold' }
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        }
-                    },
-                    elements: {
-                        point: {
-                            hoverRadius: 8
-                        }
-                    }
-                }
-            });
-
-            // Patterns comparison chart
-            patternsChart = new Chart(ctx2, {
-                type: 'line',
-                data: {
-                    labels: ['70', '75', '80', '85', '90', '95', '100', '105', '110', '115', '120'],
-                    datasets: [
-                        {
-                            label: 'Normal Skew',
-                            data: [35, 32, 29, 27, 25, 24, 23, 24, 25, 26, 27],
-                            borderColor: '#e74c3c',
-                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.3
-                        },
-                        {
-                            label: 'Steep Skew (Crisis)',
-                            data: [45, 40, 35, 31, 28, 26, 25, 27, 29, 31, 33],
-                            borderColor: '#f39c12',
-                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.3
-                        },
-                        {
-                            label: 'Flat/Reverse Skew',
-                            data: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
-                            borderColor: '#27ae60',
-                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Different Market Conditions',
-                            font: { size: 16, weight: 'bold' }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Strike Price ($)',
-                                font: { size: 14, weight: 'bold' }
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Implied Volatility (%)',
-                                font: { size: 14, weight: 'bold' }
-                            }
-                        }
-                    }
-                }
-            });
-
-            updateSkewChart();
-            setupEventListeners();
-        }
-
-        // Update the main skew chart based on controls
-        function updateSkewChart() {
-            if (!skewChart) return;
-
+        function drawSkewChart() {
             const skewIntensity = parseInt(document.getElementById('skewIntensity').value);
             const baseVol = parseInt(document.getElementById('baseVol').value);
             const spotPrice = parseInt(document.getElementById('spotPrice').value);
-
-            // Generate strike prices around the spot
+            
+            const canvas = document.getElementById('mainChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Background
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(50, 50, 700, 300);
+            ctx.strokeStyle = '#ddd';
+            ctx.strokeRect(50, 50, 700, 300);
+            
+            // Generate data
             const strikes = [];
             const vols = [];
             
-            for (let i = spotPrice - 30; i <= spotPrice + 30; i += 5) {
-                strikes.push(i.toString());
-                
-                // Calculate moneyness (how far from ATM)
-                const moneyness = (i - spotPrice) / spotPrice;
-                
-                // Create skew pattern - higher vol for OTM puts (negative moneyness)
+            for (let strike = spotPrice - 30; strike <= spotPrice + 30; strike += 5) {
+                const moneyness = (strike - spotPrice) / spotPrice;
                 let vol = baseVol;
+                
                 if (moneyness < 0) {
                     vol += skewIntensity * Math.abs(moneyness) * 2;
                 } else {
                     vol += skewIntensity * moneyness * 0.5;
                 }
                 
-                vols.push(Math.round(vol * 100) / 100);
+                strikes.push(strike);
+                vols.push(vol);
             }
-
-            skewChart.data.labels = strikes;
-            skewChart.data.datasets[0].data = vols;
-            skewChart.update();
+            
+            // Draw grid and labels
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 1;
+            ctx.fillStyle = '#666';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            
+            // X-axis grid and labels
+            for (let i = 0; i <= 10; i++) {
+                const x = 50 + (700 * i / 10);
+                const strike = Math.min(...strikes) + (Math.max(...strikes) - Math.min(...strikes)) * (i / 10);
+                
+                ctx.beginPath();
+                ctx.moveTo(x, 50);
+                ctx.lineTo(x, 350);
+                ctx.stroke();
+                
+                ctx.fillText(Math.round(strike), x, 370);
+            }
+            
+            // Y-axis grid and labels
+            ctx.textAlign = 'right';
+            const minVol = Math.min(...vols) - 2;
+            const maxVol = Math.max(...vols) + 2;
+            
+            for (let i = 0; i <= 6; i++) {
+                const y = 350 - (300 * i / 6);
+                const vol = minVol + (maxVol - minVol) * (i / 6);
+                
+                ctx.beginPath();
+                ctx.moveTo(50, y);
+                ctx.lineTo(750, y);
+                ctx.stroke();
+                
+                ctx.fillText(Math.round(vol), 45, y + 4);
+            }
+            
+            // Draw main line
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            
+            strikes.forEach((strike, i) => {
+                const x = 50 + ((strike - Math.min(...strikes)) / (Math.max(...strikes) - Math.min(...strikes))) * 700;
+                const y = 350 - ((vols[i] - minVol) / (maxVol - minVol)) * 300;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+            
+            // Draw data points
+            ctx.fillStyle = '#3498db';
+            strikes.forEach((strike, i) => {
+                const x = 50 + ((strike - Math.min(...strikes)) / (Math.max(...strikes) - Math.min(...strikes))) * 700;
+                const y = 350 - ((vols[i] - minVol) / (maxVol - minVol)) * 300;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // White border
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+            
+            // Chart labels
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Implied Volatility vs Strike Price', 400, 30);
+            ctx.fillText('Strike Price ($)', 400, 395);
+            
+            // Y-axis label (rotated)
+            ctx.save();
+            ctx.translate(25, 200);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Implied Volatility (%)', 0, 0);
+            ctx.restore();
         }
 
-        // Setup event listeners
+        function drawComparisonChart() {
+            const canvas = document.getElementById('comparisonChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Background
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(50, 50, 700, 300);
+            ctx.strokeStyle = '#ddd';
+            ctx.strokeRect(50, 50, 700, 300);
+            
+            const strikes = [70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120];
+            
+            const datasets = [
+                {
+                    label: 'Normal Skew',
+                    data: [35, 32, 29, 27, 25, 24, 23, 24, 25, 26, 27],
+                    color: '#e74c3c'
+                },
+                {
+                    label: 'Steep Skew (Crisis)',
+                    data: [45, 40, 35, 31, 28, 26, 25, 27, 29, 31, 33],
+                    color: '#f39c12'
+                },
+                {
+                    label: 'Flat/Reverse Skew',
+                    data: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+                    color: '#27ae60'
+                }
+            ];
+            
+            // Draw grid
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 1;
+            ctx.fillStyle = '#666';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            
+            // X-axis grid and labels
+            for (let i = 0; i <= 10; i++) {
+                const x = 50 + (700 * i / 10);
+                const strike = 70 + 50 * (i / 10);
+                
+                ctx.beginPath();
+                ctx.moveTo(x, 50);
+                ctx.lineTo(x, 350);
+                ctx.stroke();
+                
+                ctx.fillText(Math.round(strike), x, 370);
+            }
+            
+            // Y-axis grid and labels
+            ctx.textAlign = 'right';
+            for (let i = 0; i <= 6; i++) {
+                const y = 350 - (300 * i / 6);
+                const vol = 15 + 35 * (i / 6);
+                
+                ctx.beginPath();
+                ctx.moveTo(50, y);
+                ctx.lineTo(750, y);
+                ctx.stroke();
+                
+                ctx.fillText(Math.round(vol), 45, y + 4);
+            }
+            
+            // Draw lines for each dataset
+            datasets.forEach((dataset, datasetIndex) => {
+                ctx.strokeStyle = dataset.color;
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                
+                strikes.forEach((strike, i) => {
+                    const x = 50 + ((strike - 70) / 50) * 700;
+                    const y = 350 - ((dataset.data[i] - 15) / 35) * 300;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                ctx.stroke();
+                
+                // Legend
+                const legendY = 80 + datasetIndex * 25;
+                ctx.strokeStyle = dataset.color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(550, legendY);
+                ctx.lineTo(580, legendY);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#333';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(dataset.label, 590, legendY + 4);
+            });
+            
+            // Chart labels
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Different Market Conditions', 400, 30);
+            ctx.fillText('Strike Price ($)', 400, 395);
+            
+            // Y-axis label (rotated)
+            ctx.save();
+            ctx.translate(25, 200);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Implied Volatility (%)', 0, 0);
+            ctx.restore();
+        }
+
         function setupEventListeners() {
             document.getElementById('skewIntensity').addEventListener('input', function(e) {
                 document.getElementById('skewValue').textContent = e.target.value;
-                updateSkewChart();
+                drawSkewChart();
             });
 
             document.getElementById('baseVol').addEventListener('input', function(e) {
                 document.getElementById('volValue').textContent = e.target.value + '%';
-                updateSkewChart();
+                drawSkewChart();
             });
 
             document.getElementById('spotPrice').addEventListener('input', function(e) {
                 document.getElementById('spotValue').textContent = '$' + e.target.value;
-                updateSkewChart();
+                drawSkewChart();
             });
         }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            drawSkewChart();
+            drawComparisonChart();
+            setupEventListeners();
+        });
     </script>
 </body>
 </html>
